@@ -1,5 +1,5 @@
 # Padplot is a modular python based program which allows end-users with virtually 
-no python experience to create publication quality plots from their RNA-Seq datasets. 
+# no python experience to create publication quality plots from their RNA-Seq datasets. 
 
 Padplot achieves this by operating a Tkinter GUI. Code runs in the background but is
 based on options selected in the built-in GUI- giving the end-user control over their plots.
