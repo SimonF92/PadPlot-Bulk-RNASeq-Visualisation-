@@ -35,7 +35,7 @@ st.text("")
 
 st.header("Your data should have similarity to this shape before using PadPlot")
 
-df2=pd.read_csv('Essential_Data.csv)
+df2=pd.read_csv('Essential_Data.csv')
 st.dataframe(df2)
 
 st.header("Start by Providing your Dataset")
