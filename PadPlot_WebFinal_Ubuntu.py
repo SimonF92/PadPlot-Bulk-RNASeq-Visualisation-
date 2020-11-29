@@ -8,7 +8,7 @@ from adjustText import adjust_text
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 
-st.beta_set_page_config(layout="centered")
+st.set_page_config(layout="centered")
 initial_sidebar_state="expanded"
 
 def _max_width_():
