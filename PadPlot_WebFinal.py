@@ -28,8 +28,8 @@ st.title("Welcome to PadPlot, by Simon Fisher @ McBride Group Glasgow University
 
 st.text("")
 
-st.text("Remote Users Readme")
-st.text("This remote version of PadPlot is running from an Amazon Machine. My personal debit card acts as a security against usage of this machine. You are being trusted with this IP address. Please do not attempt to store anything on this IP. Additionally, the machine has 1Gb Ram and 1CPU core, it will be slow. My advice would be to not toggle all of the graphs as you edit- and be patient!")
+st.text("Remote Glasgow University Users Readme")
+st.text("This remote version of PadPlot is running from an Amazon Machine. My personal debit card acts as a security against usage of this machine. \n You are being trusted with this IP address. Please do not attempt to store anything on this IP. \n Additionally, the machine has 1Gb Ram and 1CPU core, it will be slow. \n My advice would be to not toggle all of the graphs as you edit- and be patient!")
 
 st.text("")
 
@@ -276,16 +276,26 @@ def violinplot():
     
 
     with sns.axes_style(schema):
+
         fig = plt.figure(figsize=(8,8))        
         ax = fig.add_subplot(1, 1, 1)
-        sns.violinplot(data= temp,x='Sample',y='Expression')
+
+        grouped = st.sidebar.checkbox('Sample Grouping')
+
+        if grouped:
+            sns.violinplot(data= temp,x='Sample',y='Expression',hue='Group',dodge=False)
+
+        else:
+            sns.violinplot(data= temp,x='Sample',y='Expression')
 
         jitter = st.sidebar.checkbox('Add Jitter')
 
     
 
         if jitter:
-            sns.stripplot(data= temp,x='Sample',y='Expression',alpha=0.2,s=1,color='black',jitter=0.4)
+            jittersize=st.sidebar.slider('Size of points', 0, 10, 1)
+            jitteralpha=st.sidebar.slider('Opacity of points', float(0), float(1), float(0.2))
+            sns.stripplot(data= temp,x='Sample',y='Expression',alpha=jitteralpha,s=jittersize,color='black',jitter=0.4)
         
         else:
             pass
