@@ -24,7 +24,14 @@ def _max_width_():
         unsafe_allow_html=True,
     )
 
-st.title("Welcome to PadPlot")
+st.title("Welcome to PadPlot, by Simon Fisher @ McBride Group Glasgow University")
+
+st.text("")
+
+st.text("Remote Users Readme")
+st.text("This remote version of PadPlot is running from an Amazon Machine. My personal debit card acts as a security against usage of this machine. You are being trusted with this IP address. Please do not attempt to store anything on this IP. Additionally, the machine has 1Gb Ram and 1CPU core, it will be slow. My advice would be to not toggle all of the graphs as you edit- and be patient!")
+
+st.text("")
 
 st.header("Start by Providing your Dataset")
 
