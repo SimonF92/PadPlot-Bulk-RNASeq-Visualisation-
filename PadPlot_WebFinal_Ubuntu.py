@@ -47,6 +47,12 @@ st.header("Start by Providing your Dataset")
 
 
 data = st.file_uploader("Upload a Dataset", type=["csv", "txt"])
+
+if not data:
+    st.warning('Please input a file.')
+    st.stop()
+st.success('Dataset loaded.')
+
 #st.success('Dataframe loaded')
 title=data.name
 st.text("")
