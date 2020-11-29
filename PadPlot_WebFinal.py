@@ -29,7 +29,7 @@ st.title("Welcome to PadPlot, by Simon Fisher @ McBride Group Glasgow University
 st.text("")
 
 st.text("Remote Glasgow University Users Readme")
-st.text("This remote version of PadPlot is running from an Amazon Machine. My personal debit card acts as a security against usage of this machine. \n You are being trusted with this IP address. Please do not attempt to store anything on this IP. \n Additionally, the machine has 1Gb Ram and 1CPU core, it will be slow. \n My advice would be to not toggle all of the graphs as you edit- and be patient!")
+st.text("This remote version of PadPlot is running from an Amazon Machine. \n You are being trusted with this IP address. \n Please do not attempt to store anything on this IP. \n Additionally, the machine has 1Gb Ram and 1CPU core, it will be slow. \n My advice would be to not toggle all of the graphs as you edit- \n and be patient!")
 
 st.text("")
 
