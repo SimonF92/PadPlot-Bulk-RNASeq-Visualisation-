@@ -96,7 +96,7 @@ def loaddata():
     data.seek(0)  
     df=pd.read_csv(data)
 
-    dfprocesses=pd.read_csv('mart_export.txt')
+    #dfprocesses=pd.read_csv('mart_export.txt')
 
     headers= list(df.columns.values)
 
