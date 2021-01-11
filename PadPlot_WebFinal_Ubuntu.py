@@ -645,7 +645,7 @@ def geneset_enrichment():
                         outdir=None,  # do not write output to disk
                         no_plot=True, # Skip plotting
                         method=statmethod, # or t_test
-                        processes=1, seed= 7,
+                         seed= 7,
                         format='png')
 
         return(gs_res)
