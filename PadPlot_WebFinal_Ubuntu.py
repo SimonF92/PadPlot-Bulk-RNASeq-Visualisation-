@@ -7,8 +7,11 @@ import adjustText
 from adjustText import adjust_text
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
+import gseapy as gp
+from gseapy.plot import gseaplot, heatmap
+import matplotlib.gridspec as gridspec
 
-st.set_page_config(layout="centered")
+st.beta_set_page_config(layout="centered")
 initial_sidebar_state="expanded"
 
 def _max_width_():
@@ -26,6 +29,7 @@ def _max_width_():
 
 
 
+
 def loaddata():
     global df
     global headers
@@ -37,6 +41,7 @@ def loaddata():
     global controlg
     global expg
     global title
+    global pim
 
     st.header("Next point PadPlot to the Relevant Columns")
     
@@ -60,7 +65,9 @@ def loaddata():
     global group1_title
     global group2_title
     global schema
-
+    global statmethod
+    global gene_set
+    global permtype
     #st.dataframe(df.head(20))
 
     st.header("Next select a Global Style for Plots")
@@ -88,7 +95,14 @@ def loaddata():
     
     data.seek(0)  
     df=pd.read_csv(data)
+
+    dfprocesses=pd.read_csv('mart_export.txt')
+
     headers= list(df.columns.values)
+
+    stat_methods=['signal_to_noise','t_test','ratio_of_classes','diff_of_classes','log2_ratio_of_classes']
+
+    gene_sets=['GO_Molecular_Function_2018','GO_Biological_Process_2018','KEGG_2019_Human','MGI_Mammalian_Phenotype_Level_4_2019']
     
     
     col1, col2, col3= st.beta_columns(3)
@@ -107,7 +121,63 @@ def loaddata():
 
     st.text("")
     st.text("")
+
+    st.header("Customise Gene Set Enrichment Parameters (Human Data Only)")
+
+    col6, col7, col8=st.beta_columns(3)
+
+    statmethod = col6.selectbox("Gene Set Enrichment Method", stat_methods)
+
+    gene_set= col7.selectbox("Gene Set Enrichment Reference Database", gene_sets)
+
+    permtype= col8.selectbox("Gene Set Enrichment Permutation Type (Phenotype only if samples > 15", ['gene_set','phenotype'])
+
+    
+
+
+def selectplot():
+
     st.text("")
+    st.text("")
+    st.text("")
+
+    options = [
+        "PadPlot Volcano",
+        "PadPlot Heatmap",
+        "PadPlot PCA",
+        "PadPlot Violin",
+        "PadPlot Gene Set Enchrichment (Human Only)",
+        
+        
+    ]
+
+    #padplots= list(OPTIONS.keys())
+
+    st.header("Choose a plot:")
+
+    plot = st.selectbox("Define a plot schema", options)
+   
+
+
+
+    if plot== "PadPlot Volcano":
+        volcanoplot()
+        
+
+    elif plot== "PadPlot Heatmap":
+        heatmapplot()
+
+    elif plot== "PadPlot PCA":
+        pcaplot()
+
+    elif plot== "PadPlot Violin":
+        violinplot()
+
+    elif plot== "PadPlot Gene Set Enchrichment (Human Only)":
+        geneset_enrichment()
+
+    else:
+        st.header("No Plot Currently Selected")
 
 
 
@@ -170,17 +240,21 @@ def pcaplot():
     features = range(0,genes,1)
     x=pca_df.loc[:,features].values
     y=pca_df.loc[:,['Sample']].values
-    x=StandardScaler().fit_transform(x)
+    #x=StandardScaler().fit_transform(x)
 
-    pca=PCA(n_components=2)
+    pca=PCA()
     principalComponents=pca.fit_transform(x)
     ex_variance=np.var(principalComponents,axis=0)
     ex_variance_ratio=ex_variance/np.sum(ex_variance)
     pc1=round((ex_variance_ratio[0] * 100), 1)
     pc2=round((ex_variance_ratio[1] * 100), 1)
+
+
+    pcx= [i[0] for i in principalComponents]
+    pcy= [i[1] for i in principalComponents]
     #pc2
 
-    principaldf=pd.DataFrame(data=principalComponents,columns=['PC1 ' + '(' + str(pc1) + '% of variance' + ' )','PC2 ' + '(' + str(pc2) + '% of variance' + ' )'])#,raise_missing=False)
+    principaldf=pd.DataFrame(data=zip(pcx,pcy),columns=['PC1 ' + '(' + str(pc1) + '% of variance' + ' )','PC2 ' + '(' + str(pc2) + '% of variance' + ' )'])#,raise_missing=False)
     principaldf['Sample']=pca_df.index
     principaldf['Group']= grouping
     principaldf['x']=principaldf['PC1 ' + '(' + str(pc1) + '% of variance' + ' )']
@@ -195,7 +269,7 @@ def pcaplot():
         ax = fig.add_subplot(1, 1, 1)
         sns.scatterplot(data= principaldf,x= 'PC1 ' + '(' + str(pc1) + '% of variance' + ' )',
                         y= 'PC2 ' + '(' + str(pc2) + '% of variance' + ' )', 
-                        ax=ax,s=400, hue='Group',legend=False)
+                        ax=ax,s=400, hue=principaldf.Group.tolist())
 
         plt.title(title,loc='left')
 
@@ -206,7 +280,7 @@ def pcaplot():
 
         adjust_text(texts,force_points=0.1, force_text=0.2, expand_points=(1,1))
 
-    c3.pyplot(fig)
+    st.pyplot(fig)
 
 
 
@@ -228,8 +302,8 @@ def violinplot():
 
 
     cols = [x for x in headers if x not in samples]
-    gp1="placehld"
-    gp2="placehld_2"
+    gp1=group1_title
+    gp2=group2_title
     g1= [gp1]
     g2= [gp2]
     grouping= (g1 * len(controlg)) + (g2 * len(expg))
@@ -250,6 +324,7 @@ def violinplot():
         temp['Expression']=temp['Expression']
         title='       Raw Values'
 
+    
 
     #st.markdown(controlg)
     low_samples = controlg
@@ -282,12 +357,13 @@ def violinplot():
         else:
             pass
         
-
+        locs, labels = plt.xticks()
+        plt.setp(labels, rotation=45)
         plt.title(title,loc='left')
 
         
 
-    c4.pyplot(fig)
+    st.pyplot(fig)
 
 
 
@@ -327,8 +403,13 @@ def prepdata():
     #st.dataframe(df)
 
 def volcanoplot():
+    
 
+    
+    
     st.sidebar.header("Change Volcano-plot Parameters")
+
+    option = st.sidebar.selectbox('Choose Volcano Type',('Standard', 'Gene Ontology (Human Only)'))
     
     p=st.sidebar.slider('p-value threshold', float(min(ps)), float(max(ps)), 0.05)
     top_genes=st.sidebar.slider('Label top genes', 0, 30, 5)
@@ -337,37 +418,144 @@ def volcanoplot():
     y=st.sidebar.slider('Adjust y-axis', float(0), max(logp)+10, (max(logp)+10))
     size=st.sidebar.slider('Point Size', float(1), float(50), float(25))
 
-    df['x']= df.L2FC[0:top_genes]
-    df['y']= df.neglogp[0:top_genes]
-    df['Gene2']= df.Gene[0:top_genes]
-    dfmod=df.dropna(axis=0, how='any', thresh=None, subset=None, inplace=False)
-    dfmod20=dfmod.iloc[0:top_genes]
+   
 
-    df['coly']=df["padj"]<p
-    coly=df['coly'].values.tolist()
-    
-    with sns.axes_style(schema):
-        fig = plt.figure(figsize=(8,8))        
-        ax = fig.add_subplot(1, 1, 1)
-        sns.scatterplot(l2fc,logp,hue=coly,s=size,ax=ax)
-        ax.set_ylabel("-log p-value",fontsize=15)
-        ax.set_xlabel("log2 Fold Change",fontsize=15)
-        plt.ylim(0, y)
-        plt.xlim((-x), x)
-        plt.title(title)
+    if option=='Gene Ontology (Human Only)':
+
+        st.error('Currently In Development')
+
+        '''
+
+        st.sidebar.header("Biological Process Labelling Input (Human Only)")
+
+        user_input = st.sidebar.text_input("Enter GO Processes here separated by commas, ie 'Sodium, Receptor, Membrane, Pregnancy'")
+        user_list=user_input.split(',')
+        st.text(user_list)
+      
+        
+        
+        @st.cache(suppress_st_warning=True)
+        def prepmartdata():
+  
+            st.write("Cache miss: expensive_computation ran")
+            
+            dfprocesses=pd.read_csv('mart_export.txt')
+            df2=dfprocesses.merge(df, right_on='Row.names', left_on='Gene stable ID', how='outer')
+            df2=df2.dropna(subset=['Unnamed: 0', 'Row.names','padj','GO term name'])
+            return df2
+            
+            
+           
+        df2=prepmartdata()
+
+        
+       
+
+        remove_list = user_list
+        df2['flagCol'] = np.where(df2['GO term name'].str.contains('|'.join(remove_list)),1,0)
+        df2['flagCol'] = df2['flagCol'].replace(0, np.nan)
+        dfflagged=df2.dropna(subset=['flagCol'])
+        genes=dfflagged['external_gene_name'].values.tolist()
+        genes = set(genes)
+        genes = list(genes)
+
+        df2['Flagged by keywords ' + str(remove_list)]= df2['external_gene_name'].isin(genes)
+        df3= df2[df2['Flagged by keywords ' + str(remove_list)].astype(str).str.contains('True')]
+        df3=df3.drop_duplicates(subset=['external_gene_name'])
+
+        
+
+        df3=df3.sort_values(by=['padj'])
+
+        df3['x']= df3.log2FoldChange
+        df3['y']= df3.neglogp
+        df3['Gene2']= df3.external_gene_name
+        
+        dfgolabels=df3.iloc[0:top_genes]
+
+        
+        
+        df['Flagged by keywords ' + str(remove_list)]= df['external_gene_name'].isin(genes)
+        coly=df['Flagged by keywords ' + str(remove_list)].values.tolist()
+
+        with sns.axes_style(schema):
+            fig = plt.figure(figsize=(8,8))        
+            ax = fig.add_subplot(1, 1, 1)
+            sns.scatterplot(l2fc,logp,hue=coly,s=size,ax=ax)
+            ax.set_ylabel("-log p-value",fontsize=15)
+            ax.set_xlabel("log2 Fold Change",fontsize=15)
+            plt.ylim(0, y)
+            plt.xlim((-x), x)
+            plt.title(title)
 
 
-        legendlabel="FDR < " + str(p)
-        ax.legend([legendlabel],loc="upper right")
+            legendlabel='Flagged by keywords ' + str(remove_list)
+            ax.legend([legendlabel],loc="upper right")
 
-        texts=[]
+            texts=[]
+            props= dict(boxstyle='round', facecolor='wheat', alpha=0.9)
 
-        for x,y,s in zip(dfmod20.x,dfmod20.y,dfmod20.Gene2):
-                    texts.append(ax.text(x,y,s,size=textsize))
+            for x,y,s in zip(dfgolabels.x,dfgolabels.y,dfgolabels.Gene2):
+                        texts.append(ax.text(x,y,s,size=textsize,bbox=props))
 
-        adjust_text(texts)
+            adjust_text(texts)
 
-        c1.pyplot(fig)
+            
+
+            
+        
+            
+
+            st.pyplot(fig)
+
+            '''
+
+        
+
+    else:
+
+        
+
+        df['x']= df.L2FC[0:top_genes]
+        df['y']= df.neglogp[0:top_genes]
+        df['Gene2']= df.Gene[0:top_genes]
+        dfmod=df.dropna(axis=0, how='any', thresh=None, subset=None, inplace=False)
+        dfmod20=dfmod.iloc[0:top_genes]
+
+        df['coly']=df["padj"]<p
+        coly=df['coly'].values.tolist()
+        
+        with sns.axes_style(schema):
+            fig = plt.figure(figsize=(8,8))        
+            ax = fig.add_subplot(1, 1, 1)
+            sns.scatterplot(l2fc,logp,hue=coly,s=size,ax=ax)
+            ax.set_ylabel("-log p-value",fontsize=15)
+            ax.set_xlabel("log2 Fold Change",fontsize=15)
+            plt.ylim(0, y)
+            plt.xlim((-x), x)
+            plt.title(title)
+
+
+            legendlabel="FDR < " + str(p)
+            ax.legend([legendlabel],loc="upper right")
+
+            texts=[]
+
+            for x,y,s in zip(dfmod20.x,dfmod20.y,dfmod20.Gene2):
+                        texts.append(ax.text(x,y,s,size=textsize))
+
+            adjust_text(texts)
+
+            
+
+            
+        
+            
+
+            st.pyplot(fig)
+
+
+
 
 def heatmapplot():
     #p2=0.05
@@ -421,46 +609,174 @@ def heatmapplot():
 
     #st.table(temp_adj)
     figure= plot()
-    c2.pyplot(figure)
+    st.pyplot(figure)
+
+
+def geneset_enrichment():
+    
+    gseaselect=[genenames]+controlg+expg
+    gene_exp=df[gseaselect]
+
+
+
+    gene_exp=gene_exp.sort_values(by=gene_exp.columns[2])
+    gene_exp=gene_exp.tail(7000)
+
+    #st.dataframe(gene_exp.head(5))
+
+    # gene_sets='GO_Biological_Process_2018','GO_Molecular_Function_2018','KEGG_2019_Human'
+    # gene_sets='MGI_Mammalian_Phenotype_Level_4_2019'
+    # gene_sets='GO_Molecular_Function_2018'
+
+    gp1="placehld"
+    gp2="placehld_2"
+    g1= [gp1]
+    g2= [gp2]
+    grouping= (g1 * len(controlg)) + (g2 * len(expg))
+
+    @st.cache(suppress_st_warning=True,allow_output_mutation=True)
+    def calculate_genesets():
+        gs_res = gp.gsea(data=gene_exp, # or data='./P53_resampling_data.txt'
+                        gene_sets=gene_set, # enrichr library names
+                        cls= grouping, # cls=class_vector
+                        # set permutation_type to phenotype if samples >=15
+                        permutation_type=permtype,
+                        permutation_num=100, # reduce number to speed up test
+                        outdir=None,  # do not write output to disk
+                        no_plot=True, # Skip plotting
+                        method=statmethod, # or t_test
+                        processes=4, seed= 7,
+                        format='png')
+
+        return(gs_res)
+
+    
+
+    
+    gs_res=calculate_genesets()
+    st.success('Gene Set Enrichment Successful')
+
+
+
+    terms = gs_res.res2d.index
+    fdrs= gs_res.res2d['fdr']
+
+    reindexed=gs_res.res2d.reset_index()
+    st.dataframe(reindexed)
+
+    processes = st.selectbox("Enriched Processes in Your Dataset (Choose one to visualise)", terms)
+    keepGO= str(processes[-len(processes):])
+    #st.text(keepGO)
+
+    
+
+    #ids = np.unique(reindexed.stack()[reindexed.astype('str').str.contains(keepGO)].index.get_level_values(0))
+    ids= reindexed.index[reindexed['Term'] ==keepGO].tolist()
+    #st.text(ids)
+    
+
+
+
+
+
+    def plot(n):
+        #st.text(n)
+        genes = gs_res.res2d.genes[n].split(";")
+        #st.dataframe(genes)
+
+        dfprocess= gs_res.heatmat.loc[genes]
+
+        control_mean= dfprocess.iloc[:,:3].mean(axis=1)
+        exp_mean= dfprocess.iloc[:,3:].mean(axis=1)
+        dfprocess_mean=pd.DataFrame()
+        dfprocess_mean['Control_mean']=control_mean
+        dfprocess_mean['Experimental_mean']=exp_mean
+        dfprocess_mean['Divided']=(dfprocess_mean['Control_mean']/dfprocess_mean['Experimental_mean'])
+        dfprocess_mean=np.log(dfprocess_mean[['Divided']])
+        dfprocess_mean=dfprocess_mean.sort_values(by='Divided',ascending='False')
+        
+        
+        grid=sns.clustermap(data=dfprocess_mean.T ,z_score=0, col_cluster=False,row_cluster=False, figsize=(18,4),cmap='RdBu_r', dendrogram_ratio=0.0,cbar_pos=None)
+        labels=grid.ax_heatmap.get_xticklabels()
+        grid.ax_heatmap.set_xticklabels(labels=labels, rotation=60, fontsize = 16)
+        labels=grid.ax_heatmap.get_yticklabels()
+        grid.ax_heatmap.set_yticklabels(labels=labels, fontsize = 16)
+
+        grid.ax_heatmap.set_title(terms[n] + ',  FDR: ' + str(round(fdrs[n],3)),size=17)
+        
+        return grid
+
+
+    indexes=ids
+
+    for value in indexes:
+        figure=plot(value)
+        st.pyplot(figure)
+
+    
+    
+    
+
+    
+    def fullgenesets():
+        fig, ax = plt.subplots(figsize=(3,len(fullset_head)/4)) 
+        scatterplot=ax.scatter(y=fullset_head.index,x=fullset_head['neglogp'],c=fullset_head['nes'],cmap='seismic',edgecolors='black',s=60)
+
+
+
+        cbar= plt.colorbar(scatterplot, orientation="horizontal", pad=2.8/len(fullset_head))
+
+        cbar.set_label("Normalised\nEnrichment Score")
+
+
+        plt.title('Enriched Pathways and Functions',size=12)
+        plt.xlabel('FDR (-log)')
+        
+
+        st.pyplot(fig)
+
+
+    
+
+    gseaplot = st.sidebar.checkbox('Display GSEA Bubble Plot')
+
+    if gseaplot:
+
+        fullset=gs_res.res2d
+        
+        fullset['neglogp']= -np.log(fullset['fdr'])
+        fullset=fullset.sort_values(by='neglogp',ascending=False)
+
+        head=st.sidebar.slider('Number of Pathways', 0, 50, 20)
+
+        fullset_head=fullset.head(head)
+        fullset_head=fullset_head.sort_values(by='neglogp')
+
+        fullgenesets()
+                
 
 _max_width_()  	
 
 #load=st.checkbox("Load Data")
-st.title("Welcome to PadPlot, by Simon Fisher @ McBride Group Glasgow University")
-
-st.text("")
-
-st.header("Remote Glasgow University Users Readme")
-st.text(" This remote version of PadPlot is running from an Amazon Machine. \n You are being trusted with this IP address. \n Please do not attempt to store anything on this IP. \n Additionally, the machine has 1Gb Ram and 1CPU core, it will be slow. \n My advice would be to not toggle all of the graphs as you edit- \n and be patient!")
-
-st.text("")
-st.text("")
-
-st.header("Example Dataset for use with PadPlot")
-st.text("")
-
-df2=pd.read_csv('Essential_Data.csv')
-st.dataframe(df2)
-
-st.text("")
-st.text("")
+st.title("Welcome to PadPlot")
 
 st.header("Start by Providing your Dataset")
 
 
-data = st.file_uploader("Upload a Dataset", type=["csv", "txt"])
+data = st.file_uploader("Upload a Dataset", type=["csv", "txt","tsv"])
 
 if not data:
     st.warning('Please input a file.')
     st.stop()
 st.success('Dataset loaded.')
-
 #st.success('Dataframe loaded')
 title=data.name
-st.text("")
-st.text("")
-st.text("")
 
+
+
+st.text("")
+st.text("")
+st.text("")
 
 
 
@@ -468,6 +784,9 @@ loaddata()
 
 
 prepdata()
+
+
+selectplot()
 
 #if load:
 #    loaddata()
@@ -482,37 +801,18 @@ st.text("")
 st.text("")
 
 
-st.header("Choose a plot:")
+
 st.text("")
-st.header("It is recommended that when editing fine detail of plots, you do not have them all loaded. Hit the top right side of the plot to enter fullscreen mode")
+
 
 st.text("")
 st.text("")
 
-vol, heat, princ, viol = st.beta_columns(4)
 
-volcano=vol.checkbox("PadPlot Volcano")
-heatmap=heat.checkbox("PadPlot Heatmap")
-pca=princ.checkbox("PadPlot PCA")
-violin=viol.checkbox("PadPlot Violin")
-
-st.text("")
-st.text("")
 
 
 c1, c2 = st.beta_columns((2))
 c3, c4 = st.beta_columns((2))
 
 
-if volcano:
-    volcanoplot()
-    
 
-if heatmap:
-    heatmapplot()
-
-if pca:
-    pcaplot()
-
-if violin:
-    violinplot()
