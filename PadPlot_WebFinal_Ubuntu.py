@@ -429,21 +429,21 @@ def volcanoplot():
         yaxistitle="-log10 p-value"
         guidebar=-np.log10(p)
 
-        df['x']= df.L2FC[0:top_genes]
-        df['y']= df['p(-log10)'][0:top_genes]
-        df['Gene2']= df.Gene[0:top_genes]
-        dfmod=df.dropna(axis=0, how='any', thresh=None, subset=None, inplace=False)
-        dfmod20=dfmod.iloc[0:top_genes]
+        df['x']= df.L2FC
+        df['y']= df['p(-log10)']
+        df['Gene2']= df.Gene
+       
+        dfmod20=df.head(top_genes)
 
     else:
         yaxistitle="-log p-value"
         guidebar=-np.log(p)
 
-        df['x']= df.L2FC[0:top_genes]
-        df['y']= df.neglogp[0:top_genes]
-        df['Gene2']= df.Gene[0:top_genes]
-        dfmod=df.dropna(axis=0, how='any', thresh=None, subset=None, inplace=False)
-        dfmod20=dfmod.iloc[0:top_genes]
+        df['x']= df.L2FC
+        df['y']= df.neglogp
+        df['Gene2']= df.Gene
+        
+        dfmod20=df.head(top_genes)
 
    
 
@@ -570,10 +570,12 @@ def volcanoplot():
             plt.title(title)
 
 
-            legendlabel="P.adj < " + str(p)
+            legendlabel="p.Adj < " + str(p)
             ax.legend([legendlabel],loc="upper right")
 
             texts=[]
+
+            #st.dataframe(dfmod20)
 
             for x,y,s in zip(dfmod20.x,dfmod20.y,dfmod20.Gene2):
                         texts.append(ax.text(x,y,s,size=textsize))
@@ -847,6 +849,8 @@ st.text("")
 
 c1, c2 = st.beta_columns((2))
 c3, c4 = st.beta_columns((2))
+
+
 
 
 
