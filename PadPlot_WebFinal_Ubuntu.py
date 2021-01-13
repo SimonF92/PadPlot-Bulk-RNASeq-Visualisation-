@@ -102,7 +102,7 @@ def loaddata():
 
     stat_methods=['signal_to_noise','t_test','ratio_of_classes','diff_of_classes','log2_ratio_of_classes']
 
-    gene_sets=['GO_Molecular_Function_2018','GO_Biological_Process_2018','KEGG_2019_Human','MGI_Mammalian_Phenotype_Level_4_2019']
+    gene_sets=['GO_Molecular_Function_2018','GO_Biological_Process_2018','KEGG_2019_Human','MGI_Mammalian_Phenotype_Level_4_2019','miRTarBase_2017','WikiPathways_2019_Human']
     
     
     col1, col2, col3= st.beta_columns(3)
@@ -403,6 +403,8 @@ def prepdata():
     #st.dataframe(df)
 
 def volcanoplot():
+
+    global logp
     
 
     
@@ -417,6 +419,31 @@ def volcanoplot():
     x=st.sidebar.slider('Adjust x-axis', float(0), float(max(l2fc)+2), float(max(l2fc)+2))
     y=st.sidebar.slider('Adjust y-axis', float(0), max(logp)+10, (max(logp)+10))
     size=st.sidebar.slider('Point Size', float(1), float(50), float(25))
+
+    logtrans = st.sidebar.checkbox('Log base-10 Transformation')
+
+    
+
+    if logtrans:
+        logp=df["p(-log10)"].tolist()
+        yaxistitle="-log10 p-value"
+        guidebar=-np.log10(p)
+
+        df['x']= df.L2FC[0:top_genes]
+        df['y']= df['p(-log10)'][0:top_genes]
+        df['Gene2']= df.Gene[0:top_genes]
+        dfmod=df.dropna(axis=0, how='any', thresh=None, subset=None, inplace=False)
+        dfmod20=dfmod.iloc[0:top_genes]
+
+    else:
+        yaxistitle="-log p-value"
+        guidebar=-np.log(p)
+
+        df['x']= df.L2FC[0:top_genes]
+        df['y']= df.neglogp[0:top_genes]
+        df['Gene2']= df.Gene[0:top_genes]
+        dfmod=df.dropna(axis=0, how='any', thresh=None, subset=None, inplace=False)
+        dfmod20=dfmod.iloc[0:top_genes]
 
    
 
@@ -510,17 +537,15 @@ def volcanoplot():
 
             '''
 
+    
+
         
 
     else:
 
         
 
-        df['x']= df.L2FC[0:top_genes]
-        df['y']= df.neglogp[0:top_genes]
-        df['Gene2']= df.Gene[0:top_genes]
-        dfmod=df.dropna(axis=0, how='any', thresh=None, subset=None, inplace=False)
-        dfmod20=dfmod.iloc[0:top_genes]
+        
 
         df['coly']=df["padj"]<p
         coly=df['coly'].values.tolist()
@@ -529,14 +554,23 @@ def volcanoplot():
             fig = plt.figure(figsize=(8,8))        
             ax = fig.add_subplot(1, 1, 1)
             sns.scatterplot(l2fc,logp,hue=coly,s=size,ax=ax)
-            ax.set_ylabel("-log p-value",fontsize=15)
+            ax.set_ylabel(yaxistitle,fontsize=15)
             ax.set_xlabel("log2 Fold Change",fontsize=15)
+
+            guides = st.sidebar.checkbox('Toggle Guidebars')
+            if guides:
+                ax.hlines(guidebar,(-x),x,linestyles='--',color='grey',linewidth=0.7)
+                ax.vlines(-1,0,y,linestyles='--',color='grey',linewidth=0.7)
+                ax.vlines(1,0,y,linestyles='--',color='grey',linewidth=0.7)
+            else:
+                pass
+            
             plt.ylim(0, y)
             plt.xlim((-x), x)
             plt.title(title)
 
 
-            legendlabel="FDR < " + str(p)
+            legendlabel="P.adj < " + str(p)
             ax.legend([legendlabel],loc="upper right")
 
             texts=[]
@@ -645,7 +679,7 @@ def geneset_enrichment():
                         outdir=None,  # do not write output to disk
                         no_plot=True, # Skip plotting
                         method=statmethod, # or t_test
-                        processes=0,seed= 7,
+                        processes=4, seed= 7,
                         format='png')
 
         return(gs_res)
