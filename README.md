@@ -22,4 +22,4 @@ label certain genes that are in a pathway?
 
 Just give them padplot and let them run it
 
-# Most importantly, please use Anaconda, as it has many of the modules pre-installed
+# PadPlot web is designed to be hosted on a linux machine, I am currently hosting this secretly, please get in touch for the site
